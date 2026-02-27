@@ -2,7 +2,7 @@
 
 Want to try out C# for web development? 
 
-This repo builds a Weather API, OpenAPI integration to test with [Scalar](https://learn.microsoft.com/aspnet/core/fundamentals/openapi/using-openapi-documents?view=aspnetcore-10.0#use-scalar-for-interactive-api-documentation), and displays the data in a web application using Blazor (.NET/C#).
+This repo builds a Financial Planner API, OpenAPI integration to test with [Scalar](https://learn.microsoft.com/aspnet/core/fundamentals/openapi/using-openapi-documents?view=aspnetcore-10.0#use-scalar-for-interactive-api-documentation), and displays the data in a web application using Blazor (.NET/C#).
 
 We've given you both a frontend and backend to play around with and where you go from here is up to you!
 
@@ -26,7 +26,7 @@ You can also run this repository locally by following these instructions:
 
 3. The Blazor web app and Scalar can be open by heading to **/scalar** in your browser. On Scalar, head to the backend API and click "Test Request" to call and test the API. 
 
-![A website showing weather](images/BlazorApp.png)
+![A website showing Financial Planner](images/BlazorApp.png)
 
 !["UI showing testing an API"](images/scalar.png)
 

@@ -1,47 +1,221 @@
 ﻿@page "/"
 @using FrontEnd.Data
-@inject WeatherForecastClient ForecastClient
+@using Microsoft.AspNetCore.Components.Forms
+@inject BudgetClient BudgetClient
 
-<PageTitle>Weather forecast</PageTitle>
+<PageTitle>Financial Planner</PageTitle>
 
-<h1>Weather forecast</h1>
+<h1>Financial Planner</h1>
 
-<p>This component demonstrates fetching data from a service.</p>
-
-@if (forecasts == null)
+@if (string.IsNullOrWhiteSpace(currentUser))
 {
-    <p><em>Loading...</em></p>
+    <p>Enter your name to start your budgeting session.</p>
+    <div class="row g-2 align-items-center mb-3">
+        <div class="col-auto">
+            <input class="form-control" @bind="userNameInput" placeholder="Your name" />
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-primary" @onclick="LoginAsync" disabled="@isBusy">Sign in</button>
+        </div>
+    </div>
 }
 else
 {
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Temp. (C)</th>
-                <th>Temp. (F)</th>
-                <th>Summary</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var forecast in forecasts)
-            {
-                <tr>
-                    <td>@forecast.Date.ToShortDateString()</td>
-                    <td>@forecast.TemperatureC</td>
-                    <td>@forecast.TemperatureF</td>
-                    <td>@forecast.Summary</td>
-                </tr>
-            }
-        </tbody>
-    </table>
+    <p class="mb-2">Signed in as <strong>@currentUser</strong>.</p>
+    <div class="mb-3">
+        <button class="btn btn-outline-secondary" @onclick="SignOut">Sign out</button>
+    </div>
+
+    <h4>Upload statement CSV</h4>
+    <InputFile OnChange="UploadCsvAsync" accept=".csv,text/csv" />
+    @if (!string.IsNullOrWhiteSpace(uploadMessage))
+    {
+        <p class="mt-2">@uploadMessage</p>
+    }
+
+    <div class="mt-3">
+        <button class="btn btn-danger" @onclick="DeleteAllTransactionsAsync" disabled="@isBusy">
+            Delete all transactions
+        </button>
+    </div>
+
+    <div class="mt-4 mb-3">
+        <input class="form-control" @bind="searchTerm" placeholder="Search transactions" />
+    </div>
+
+    <h4 class="mt-4">Transactions</h4>
+    @if (transactions.Count == 0)
+    {
+        <p>No transactions uploaded yet.</p>
+    }
+    else
+    {
+        @if (FilteredTransactions.Count == 0)
+        {
+            <p>No transactions match your search.</p>
+        }
+        else
+        {
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Description</th>
+                        <th>Amount</th>
+                        <th>Category</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var transaction in FilteredTransactions)
+                    {
+                        <tr>
+                            <td>@(string.IsNullOrWhiteSpace(transaction.Date) ? "-" : transaction.Date)</td>
+                            <td>@transaction.Description</td>
+                            <td>@transaction.Amount</td>
+                            <td>@transaction.Category</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    }
+}
+
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <p class="text-danger">@errorMessage</p>
 }
 
 @code {
-    private WeatherForecast[]? forecasts;
+    private string? userNameInput;
+    private string? currentUser;
+    private string? errorMessage;
+    private string? uploadMessage;
+    private string? searchTerm;
+    private bool isBusy;
+    private List<BudgetTransaction> transactions = [];
 
-    protected override async Task OnInitializedAsync()
+    private IReadOnlyList<BudgetTransaction> FilteredTransactions =>
+        string.IsNullOrWhiteSpace(searchTerm)
+            ? transactions
+            : transactions.Where(MatchesSearch).ToList();
+
+    private async Task LoginAsync()
     {
-        forecasts = await ForecastClient.GetForecastAsync(DateTime.Now);
+        errorMessage = null;
+        uploadMessage = null;
+
+        if (string.IsNullOrWhiteSpace(userNameInput))
+        {
+            errorMessage = "Name is required.";
+            return;
+        }
+
+        isBusy = true;
+        try
+        {
+            currentUser = await BudgetClient.LoginAsync(userNameInput);
+            await LoadTransactionsAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private void SignOut()
+    {
+        currentUser = null;
+        userNameInput = null;
+        searchTerm = null;
+        transactions = [];
+        uploadMessage = null;
+        errorMessage = null;
+    }
+
+    private async Task UploadCsvAsync(InputFileChangeEventArgs e)
+    {
+        if (string.IsNullOrWhiteSpace(currentUser))
+        {
+            errorMessage = "Sign in first.";
+            return;
+        }
+
+        errorMessage = null;
+        uploadMessage = null;
+        isBusy = true;
+
+        try
+        {
+            var file = e.File;
+            var importedCount = await BudgetClient.UploadStatementAsync(currentUser, file);
+            uploadMessage = $"Imported {importedCount} transactions from {file.Name}.";
+            await LoadTransactionsAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task DeleteAllTransactionsAsync()
+    {
+        if (string.IsNullOrWhiteSpace(currentUser))
+        {
+            errorMessage = "Sign in first.";
+            return;
+        }
+
+        errorMessage = null;
+        uploadMessage = null;
+        isBusy = true;
+
+        try
+        {
+            await BudgetClient.DeleteTransactionsAsync(currentUser);
+            transactions = [];
+            uploadMessage = "All transactions were deleted for this user.";
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isBusy = false;
+        }
+    }
+
+    private async Task LoadTransactionsAsync()
+    {
+        if (string.IsNullOrWhiteSpace(currentUser))
+        {
+            transactions = [];
+            return;
+        }
+
+        transactions = (await BudgetClient.GetTransactionsAsync(currentUser)).ToList();
+    }
+
+    private bool MatchesSearch(BudgetTransaction transaction)
+    {
+        if (string.IsNullOrWhiteSpace(searchTerm))
+        {
+            return true;
+        }
+
+        var term = searchTerm.Trim();
+        return (transaction.Date?.Contains(term, StringComparison.OrdinalIgnoreCase) ?? false)
+            || transaction.Description.Contains(term, StringComparison.OrdinalIgnoreCase)
+            || transaction.Category.Contains(term, StringComparison.OrdinalIgnoreCase)
+            || transaction.Amount.ToString().Contains(term, StringComparison.OrdinalIgnoreCase);
     }
 }

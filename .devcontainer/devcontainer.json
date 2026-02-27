@@ -44,11 +44,11 @@
     },
     "portsAttributes": {
         "8080": {
-            "label": "Weather API",
+            "label": "Financial Planner API",
             "onAutoForward": "notify"
         },
         "8081": {
-            "label": "Weather Front End",
+            "label": "Financial Planner Front End",
             "onAutoForward": "notify"
         }
     }
