@@ -156,9 +156,8 @@ else
             uploadMessage = $"Imported {importedCount} transactions from {file.Name}.";
             await LoadTransactionsAsync();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            errorMessage = ex.Message;
         }
         finally
         {
