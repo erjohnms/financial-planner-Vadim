@@ -27,9 +27,8 @@ Your goal as a candidate is to:
 
 ### Address customer feedback
 
-1. First click to login doesn't work.
-2. When uploading statements, it feels like some transactions are missing.
-3. Some of my statements didn't upload. What's going on?
+1. When uploading statements, it feels like some transactions are missing.
+2. Some of my statements didn't upload. What's going on?
 
 ### New feature requests
 
