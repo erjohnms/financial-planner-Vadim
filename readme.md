@@ -4,7 +4,6 @@ This is an AI-assisted technical interview focused on a full-stack budgeting app
 
 Your goal as a candidate is to:
 - Review the current application behavior.
-- Identify and discuss what feels wrong, brittle, or incomplete.
 - Implement selected improvements and new features.
 
 ## Getting started in GitHub Codespaces
@@ -28,9 +27,7 @@ Your goal as a candidate is to:
 ### Address customer feedback
 
 1. When uploading statements, it feels like some transactions are missing.
-2. Some of my statements didn't upload. What's going on?
 
 ### New feature requests
 
 1. Bulk Upload
-2. New Monthly Budget Page
