@@ -22,16 +22,20 @@ public class BudgetClient
         return loginResponse?.Name ?? name;
     }
 
-    public async Task<int> UploadStatementAsync(string userName, IBrowserFile csvFile)
+    public async Task<int> UploadStatementAsync(string userName, IReadOnlyList<IBrowserFile> csvFiles)
     {
-        using var stream = csvFile.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
         using var content = new MultipartFormDataContent();
-        using var fileContent = new StreamContent(stream);
 
-        fileContent.Headers.ContentType = new MediaTypeHeaderValue(
-            string.IsNullOrWhiteSpace(csvFile.ContentType) ? "text/csv" : csvFile.ContentType);
+        foreach (var csvFile in csvFiles)
+        {
+            var stream = csvFile.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+            var fileContent = new StreamContent(stream);
 
-        content.Add(fileContent, "file", csvFile.Name);
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue(
+                string.IsNullOrWhiteSpace(csvFile.ContentType) ? "text/csv" : csvFile.ContentType);
+
+            content.Add(fileContent, "files", csvFile.Name);
+        }
 
         var requestUri = $"/transactions/upload?userName={Uri.EscapeDataString(userName)}";
         var response = await _httpClient.PostAsync(requestUri, content);

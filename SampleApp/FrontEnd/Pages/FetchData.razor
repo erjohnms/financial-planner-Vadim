@@ -1,4 +1,4 @@
-﻿@page "/"
+@page "/"
 @using FrontEnd.Data
 @using Microsoft.AspNetCore.Components.Forms
 @inject BudgetClient BudgetClient
@@ -27,7 +27,7 @@ else
     </div>
 
     <h4>Upload statement CSV</h4>
-    <InputFile OnChange="UploadCsvAsync" accept=".csv,text/csv" />
+    <InputFile OnChange="UploadCsvAsync" accept=".csv,text/csv" multiple />
     @if (!string.IsNullOrWhiteSpace(uploadMessage))
     {
         <p class="mt-2">@uploadMessage</p>
@@ -151,13 +151,14 @@ else
 
         try
         {
-            var file = e.File;
-            var importedCount = await BudgetClient.UploadStatementAsync(currentUser, file);
-            uploadMessage = $"Imported {importedCount} transactions from {file.Name}.";
+            var files = e.GetMultipleFiles(maximumFileCount: 20);
+            var importedCount = await BudgetClient.UploadStatementAsync(currentUser, files.ToList());
+            uploadMessage = $"Imported {importedCount} transactions from {files.Count} files.";
             await LoadTransactionsAsync();
         }
-        catch (Exception)
+        catch (Exception ex)
         {
+            errorMessage = ex.Message;
         }
         finally
         {

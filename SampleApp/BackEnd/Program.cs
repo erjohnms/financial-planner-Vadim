@@ -26,7 +26,10 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference();
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.UseAntiforgery();
 
 app.MapPost("/users/login", (LoginRequest request, TransactionRepository repository) =>
@@ -42,24 +45,31 @@ app.MapPost("/users/login", (LoginRequest request, TransactionRepository reposit
 })
 .WithName("LoginUser");
 
-app.MapPost("/transactions/upload", async (string userName, IFormFile file, TransactionRepository repository) =>
+app.MapPost("/transactions/upload", async (string userName, IFormFileCollection files, TransactionRepository repository) =>
 {
     if (string.IsNullOrWhiteSpace(userName))
     {
         return Results.BadRequest("userName is required.");
     }
 
-    if (file is null || file.Length == 0)
+    if (files is null || files.Count == 0)
     {
-        return Results.BadRequest("CSV file is required.");
+        return Results.BadRequest("CSV files are required.");
     }
 
+    int totalImported = 0;
     try
     {
-        using var stream = file.OpenReadStream();
-        var transactions = ParseTransactions(stream);
-        repository.AddTransactions(userName.Trim(), file.FileName, transactions);
-        return Results.Ok(new UploadResult(transactions.Count));
+        foreach (var file in files)
+        {
+            if (file is null || file.Length == 0) continue;
+
+            using var stream = file.OpenReadStream();
+            var transactions = ParseTransactions(stream);
+            repository.AddTransactions(userName.Trim(), file.FileName, transactions);
+            totalImported += transactions.Count;
+        }
+        return Results.Ok(new UploadResult(totalImported));
     }
     catch (InvalidDataException ex)
     {
@@ -122,16 +132,10 @@ static List<TransactionRecord> ParseTransactions(Stream csvStream)
     }
 
     var transactions = new List<TransactionRecord>();
-    var rowNumber = 1;
     while (!reader.EndOfStream)
     {
         var line = reader.ReadLine();
         if (string.IsNullOrWhiteSpace(line))
-        {
-            continue;
-        }
-
-        if (rowNumber++ <= 1)
         {
             continue;
         }
@@ -404,3 +408,5 @@ internal record LoginRequest(string Name);
 internal record LoginResponse(string Name);
 internal record UploadResult(int ImportedCount);
 internal record TransactionRecord(string? Date, string Description, decimal Amount, string Category);
+
+public partial class Program { }
